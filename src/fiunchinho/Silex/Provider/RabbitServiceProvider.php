@@ -11,7 +11,7 @@ use OldSound\RabbitMqBundle\RabbitMq\RpcServer;
 use PhpAmqpLib\Connection\AMQPConnection;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
 use Pimple\Container;
-use Pimple\ServiceProviderInterface
+use Pimple\ServiceProviderInterface;
 
 class RabbitServiceProvider implements ServiceProviderInterface
 {
