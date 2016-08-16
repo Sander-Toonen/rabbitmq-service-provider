@@ -38,7 +38,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
      */
     private function loadConnections(Application $app)
     {
-        $app['rabbit.connection'] = $app->share(function ($app) {
+        $app['rabbit.connection'] = function ($app) {
             if (!isset($app['rabbit.connections'])) {
                 throw new \InvalidArgumentException('You need to specify at least a connection in your configuration.');
             }
@@ -78,7 +78,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
             }
 
             return $connections;
-        });
+        };
     }
 
     /**
@@ -104,7 +104,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
      */
     private function loadProducers(Application $app)
     {
-        $app['rabbit.producer'] = $app->share(function ($app) {
+        $app['rabbit.producer'] = function ($app) {
             if (!isset($app['rabbit.producers'])) {
                 return null;
             }
@@ -131,7 +131,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
             }
 
             return $producers;
-        });
+        };
     }
 
     /**
@@ -139,13 +139,13 @@ class RabbitServiceProvider implements ServiceProviderInterface
      */
     private function loadConsumers(Application $app)
     {
-        $app['rabbit.consumer'] = $app->share(function ($app) {
+        $app['rabbit.consumer'] = function ($app) {
             if (!isset($app['rabbit.consumers'])) {
                 return null;
             }
 
             $consumers = [];
-            
+
             foreach ($app['rabbit.consumers'] as $name => $options) {
                 $connection = $this->getConnection($app, $options, $app['rabbit.connections']);
                 $consumer = new Consumer($connection);
@@ -173,7 +173,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
             }
 
             return $consumers;
-        });
+        };
     }
 
     /**
@@ -181,7 +181,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
      */
     private function loadAnonymousConsumers(Application $app)
     {
-        $app['rabbit.anonymous_consumer'] = $app->share(function ($app) {
+        $app['rabbit.anonymous_consumer'] = function ($app) {
             if (!isset($app['rabbit.anon_consumers'])) {
                 return null;
             }
@@ -198,7 +198,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
             }
 
             return $consumers;
-        });
+        };
     }
 
     /**
@@ -206,7 +206,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
      */
     private function loadMultipleConsumers(Application $app)
     {
-        $app['rabbit.multiple_consumer'] = $app->share(function ($app) {
+        $app['rabbit.multiple_consumer'] = function ($app) {
             if (!isset($app['rabbit.multiple_consumers'])) {
                 return null;
             }
@@ -246,8 +246,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
             }
 
             return $consumers;
-        });
-        
+        };
     }
 
     /**
@@ -255,7 +254,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
      */
     private function loadRpcClients(Application $app)
     {
-        $app['rabbit.rpc_client'] = $app->share(function ($app) {
+        $app['rabbit.rpc_client'] = function ($app) {
             if (!isset($app['rabbit.rpc_clients'])) {
                 return null;
             }
@@ -274,7 +273,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
             }
 
             return $clients;
-        });
+        };
     }
 
     /**
@@ -282,7 +281,7 @@ class RabbitServiceProvider implements ServiceProviderInterface
      */
     private function loadRpcServers(Application $app)
     {
-        $app['rabbit.rpc_server'] = $app->share(function ($app) {
+        $app['rabbit.rpc_server'] = function ($app) {
             if (!isset($app['rabbit.rpc_servers'])) {
                 return null;
             }
@@ -307,7 +306,6 @@ class RabbitServiceProvider implements ServiceProviderInterface
             }
 
             return $servers;
-        });
-        
+        };
     }
 }
