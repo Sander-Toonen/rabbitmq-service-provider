@@ -10,46 +10,46 @@ use OldSound\RabbitMqBundle\RabbitMq\RpcClient;
 use OldSound\RabbitMqBundle\RabbitMq\RpcServer;
 use PhpAmqpLib\Connection\AMQPConnection;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
-use Silex\Application;
-use Silex\ServiceProviderInterface;
+use Pimple\Container;
+use Pimple\ServiceProviderInterface
 
 class RabbitServiceProvider implements ServiceProviderInterface
 {
     const DEFAULT_CONNECTION = 'default';
 
-    public function register(Application $app)
+    public function register(Container $container)
     {
-        $this->loadConnections($app);
-        $this->loadProducers($app);
-        $this->loadConsumers($app);
-        $this->loadAnonymousConsumers($app);
-        $this->loadMultipleConsumers($app);
-        $this->loadRpcClients($app);
-        $this->loadRpcServers($app);
+        $this->loadConnections($container);
+        $this->loadProducers($container);
+        $this->loadConsumers($container);
+        $this->loadAnonymousConsumers($container);
+        $this->loadMultipleConsumers($container);
+        $this->loadRpcClients($container);
+        $this->loadRpcServers($container);
     }
 
-    public function boot(Application $app)
+    public function boot(Container $container)
     {
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      * @throws \InvalidArgumentException
      */
-    private function loadConnections(Application $app)
+    private function loadConnections(Container $container)
     {
-        $app['rabbit.connection'] = function ($app) {
-            if (!isset($app['rabbit.connections'])) {
+        $container['rabbit.connection'] = function ($container) {
+            if (!isset($container['rabbit.connections'])) {
                 throw new \InvalidArgumentException('You need to specify at least a connection in your configuration.');
             }
 
             $connections = [];
 
-            foreach ($app['rabbit.connections'] as $name => $options) {
+            foreach ($container['rabbit.connections'] as $name => $options) {
                 $lazyConnection = false;
 
-                if (isset($app['rabbit.connections'][$name]['lazy'])) {
-                    if ($app['rabbit.connections'][$name]['lazy'] === true) {
+                if (isset($container['rabbit.connections'][$name]['lazy'])) {
+                    if ($container['rabbit.connections'][$name]['lazy'] === true) {
                         $lazyConnection = true;
                     }
                 }
@@ -57,20 +57,20 @@ class RabbitServiceProvider implements ServiceProviderInterface
                 switch ($lazyConnection) {
                     case (true):
                         $connection = new AMQPLazyConnection(
-                            $app['rabbit.connections'][$name]['host'],
-                            $app['rabbit.connections'][$name]['port'],
-                            $app['rabbit.connections'][$name]['user'],
-                            $app['rabbit.connections'][$name]['password'],
-                            $app['rabbit.connections'][$name]['vhost']
+                            $container['rabbit.connections'][$name]['host'],
+                            $container['rabbit.connections'][$name]['port'],
+                            $container['rabbit.connections'][$name]['user'],
+                            $container['rabbit.connections'][$name]['password'],
+                            $container['rabbit.connections'][$name]['vhost']
                         );
                         break;
                     default:
                         $connection = new AMQPConnection(
-                            $app['rabbit.connections'][$name]['host'],
-                            $app['rabbit.connections'][$name]['port'],
-                            $app['rabbit.connections'][$name]['user'],
-                            $app['rabbit.connections'][$name]['password'],
-                            $app['rabbit.connections'][$name]['vhost']
+                            $container['rabbit.connections'][$name]['host'],
+                            $container['rabbit.connections'][$name]['port'],
+                            $container['rabbit.connections'][$name]['user'],
+                            $container['rabbit.connections'][$name]['password'],
+                            $container['rabbit.connections'][$name]['vhost']
                         );
                 }
 
@@ -82,13 +82,13 @@ class RabbitServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      * @param array $options
      * @param array $connections
      * @return AMQPLazyConnection|AMQPConnection
      * @throws \InvalidArgumentException
      */
-    private function getConnection(Application $app, $options, $connections)
+    private function getConnection(Container $container, $options, $connections)
     {
         $connection_name = $options['connection']?: self::DEFAULT_CONNECTION;
 
@@ -96,23 +96,23 @@ class RabbitServiceProvider implements ServiceProviderInterface
             throw new \InvalidArgumentException('Configuration for connection [' . $connection_name . '] not found');
         }
 
-        return $app['rabbit.connection'][$connection_name];
+        return $container['rabbit.connection'][$connection_name];
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      */
-    private function loadProducers(Application $app)
+    private function loadProducers(Container $container)
     {
-        $app['rabbit.producer'] = function ($app) {
-            if (!isset($app['rabbit.producers'])) {
+        $container['rabbit.producer'] = function ($container) {
+            if (!isset($container['rabbit.producers'])) {
                 return null;
             }
 
             $producers = [];
 
-            foreach ($app['rabbit.producers'] as $name => $options) {
-                $connection = $this->getConnection($app, $options, $app['rabbit.connections']);
+            foreach ($container['rabbit.producers'] as $name => $options) {
+                $connection = $this->getConnection($container, $options, $container['rabbit.connections']);
 
                 $producer = new Producer($connection);
                 $producer->setExchangeOptions($options['exchange_options']);
@@ -135,23 +135,23 @@ class RabbitServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      */
-    private function loadConsumers(Application $app)
+    private function loadConsumers(Container $container)
     {
-        $app['rabbit.consumer'] = function ($app) {
-            if (!isset($app['rabbit.consumers'])) {
+        $container['rabbit.consumer'] = function ($container) {
+            if (!isset($container['rabbit.consumers'])) {
                 return null;
             }
 
             $consumers = [];
 
-            foreach ($app['rabbit.consumers'] as $name => $options) {
-                $connection = $this->getConnection($app, $options, $app['rabbit.connections']);
+            foreach ($container['rabbit.consumers'] as $name => $options) {
+                $connection = $this->getConnection($container, $options, $container['rabbit.connections']);
                 $consumer = new Consumer($connection);
                 $consumer->setExchangeOptions($options['exchange_options']);
                 $consumer->setQueueOptions($options['queue_options']);
-                $consumer->setCallback(array($app[$options['callback']], 'execute'));
+                $consumer->setCallback(array($container[$options['callback']], 'execute'));
 
                 if (array_key_exists('qos_options', $options)) {
                     $consumer->setQosOptions(
@@ -177,22 +177,22 @@ class RabbitServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      */
-    private function loadAnonymousConsumers(Application $app)
+    private function loadAnonymousConsumers(Container $container)
     {
-        $app['rabbit.anonymous_consumer'] = function ($app) {
-            if (!isset($app['rabbit.anon_consumers'])) {
+        $container['rabbit.anonymous_consumer'] = function ($container) {
+            if (!isset($container['rabbit.anon_consumers'])) {
                 return null;
             }
 
             $consumers = [];
 
-            foreach ($app['rabbit.anon_consumers'] as $name => $options) {
-                $connection = $this->getConnection($app, $options, $app['rabbit.connections']);
+            foreach ($container['rabbit.anon_consumers'] as $name => $options) {
+                $connection = $this->getConnection($container, $options, $container['rabbit.connections']);
                 $consumer = new AnonConsumer($connection);
                 $consumer->setExchangeOptions($options['exchange_options']);
-                $consumer->setCallback(array($app[$options['callback']], 'execute'));
+                $consumer->setCallback(array($container[$options['callback']], 'execute'));
 
                 $consumers[$name] = $consumer;
             }
@@ -202,25 +202,25 @@ class RabbitServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      */
-    private function loadMultipleConsumers(Application $app)
+    private function loadMultipleConsumers(Container $container)
     {
-        $app['rabbit.multiple_consumer'] = function ($app) {
-            if (!isset($app['rabbit.multiple_consumers'])) {
+        $container['rabbit.multiple_consumer'] = function ($container) {
+            if (!isset($container['rabbit.multiple_consumers'])) {
                 return null;
             }
 
             $consumers = [];
 
-            foreach ($app['rabbit.multiple_consumers'] as $name => $options) {
-                $connection = $this->getConnection($app, $options, $app['rabbit.connections']);
+            foreach ($container['rabbit.multiple_consumers'] as $name => $options) {
+                $connection = $this->getConnection($container, $options, $container['rabbit.connections']);
                 $consumer = new MultipleConsumer($connection);
                 $consumer->setExchangeOptions($options['exchange_options']);
 
                 foreach ($options['queues'] as &$queue) {
                     if (isset($queue['callback'])) {
-                        $queue['callback'] = array($app[$queue['callback']], 'execute');
+                        $queue['callback'] = array($container[$queue['callback']], 'execute');
                     }
                 }
 
@@ -250,19 +250,19 @@ class RabbitServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      */
-    private function loadRpcClients(Application $app)
+    private function loadRpcClients(Container $container)
     {
-        $app['rabbit.rpc_client'] = function ($app) {
-            if (!isset($app['rabbit.rpc_clients'])) {
+        $container['rabbit.rpc_client'] = function ($container) {
+            if (!isset($container['rabbit.rpc_clients'])) {
                 return null;
             }
 
             $clients = [];
 
-            foreach ($app['rabbit.rpc_clients'] as $name => $options) {
-                $connection = $this->getConnection($app, $options, $app['rabbit.connections']);
+            foreach ($container['rabbit.rpc_clients'] as $name => $options) {
+                $connection = $this->getConnection($container, $options, $container['rabbit.connections']);
                 $client = new RpcClient($connection);
 
                 if (array_key_exists('expect_serialized_response', $options)) {
@@ -277,22 +277,22 @@ class RabbitServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * @param Application $app
+     * @param Container $container
      */
-    private function loadRpcServers(Application $app)
+    private function loadRpcServers(Container $container)
     {
-        $app['rabbit.rpc_server'] = function ($app) {
-            if (!isset($app['rabbit.rpc_servers'])) {
+        $container['rabbit.rpc_server'] = function ($container) {
+            if (!isset($container['rabbit.rpc_servers'])) {
                 return null;
             }
 
             $servers = [];
 
-            foreach ($app['rabbit.rpc_servers'] as $name => $options) {
-                $connection = $this->getConnection($app, $options, $app['rabbit.connections']);
+            foreach ($container['rabbit.rpc_servers'] as $name => $options) {
+                $connection = $this->getConnection($container, $options, $container['rabbit.connections']);
                 $server = new RpcServer($connection);
                 $server->initServer($name);
-                $server->setCallback(array($app[$options['callback']], 'execute'));
+                $server->setCallback(array($container[$options['callback']], 'execute'));
 
                 if (array_key_exists('qos_options', $options)) {
                     $server->setQosOptions(
